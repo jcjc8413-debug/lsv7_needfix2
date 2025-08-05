@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           console.log('👤 User found, fetching restaurant...');
-          fetchRestaurant(session.user.id).finally(() => {
+          await fetchRestaurant(session.user.id).finally(() => {
             if (mounted) setLoading(false);
           });
         } else {
@@ -104,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          fetchRestaurant(session.user.id).finally(() => {
+          await fetchRestaurant(session.user.id).finally(() => {
             if (mounted) setLoading(false);
           });
         } else {
@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // If no restaurant exists, create one (but don't block the UI)
       console.log('🏗️ No restaurant found, creating default restaurant...');
-      createDefaultRestaurant(userId).catch(error => {
+      await createDefaultRestaurant(userId).catch(error => {
         console.error('Failed to create default restaurant:', error);
       });
       
@@ -165,11 +165,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const createDefaultRestaurant = async (userId: string) => {
     try {
       // First check if restaurant already exists for this user
-      const { data: existingRestaurant, error: checkError } = await supabase
+      const { data: existingRestaurant, error: checkError } = await Promise.race([
+        supabase
         .from('restaurants')
         .select('*')
         .eq('owner_id', userId)
-        .limit(1);
+        .limit(1),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Restaurant check timeout')), 10000)
+        )
+      ]) as any;
 
       if (checkError && checkError.code !== 'PGRST116') {
         console.error('❌ Error checking existing restaurant:', checkError);
@@ -234,11 +239,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // If it's a duplicate error, the restaurant might have been created by another process
         if (restaurantError.code === '23505') {
           console.log('🔄 Duplicate detected, fetching existing restaurant...');
-          const { data: existingRestaurant } = await supabase
+          const { data: existingRestaurant } = await Promise.race([
+            supabase
             .from('restaurants')
             .select('*')
             .eq('owner_id', userId)
-            .limit(1);
+            .limit(1),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Restaurant fetch timeout')), 10000)
+            )
+          ]) as any;
           
           if (existingRestaurant && existingRestaurant.length > 0) {
             setRestaurant(existingRestaurant[0]);
