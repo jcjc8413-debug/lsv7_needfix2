@@ -194,7 +194,7 @@ export const useDashboardData = (timeRange: string = '7d') => {
         .from('restaurants')
         .select('settings')
         .eq('id', restaurantId)
-        .single();
+        .maybeSingle();
 
       if (restaurantError) throw restaurantError;
 

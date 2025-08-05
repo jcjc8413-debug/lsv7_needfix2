@@ -30,7 +30,7 @@ export class LoyaltyConfigService {
         .from('restaurants')
         .select('settings')
         .eq('id', restaurantId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

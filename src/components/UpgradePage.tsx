@@ -108,11 +108,25 @@ const currentPlan = plans.find(p => p.planId === selectedPlan);
     setError('');
 
     try {
-      // Get current session for authentication
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get fresh session with retry
+      let session = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (!session && attempts < maxAttempts) {
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        if (currentSession?.access_token) {
+          session = currentSession;
+          break;
+        }
+        attempts++;
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
       
       if (!session?.access_token) {
-        throw new Error('Authentication required. Please sign in again.');
+        throw new Error('Please refresh the page and try again.');
       }
 
       // Create Stripe checkout session
@@ -132,7 +146,10 @@ const currentPlan = plans.find(p => p.planId === selectedPlan);
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create checkout session');
+        if (errorData.error?.includes('Price ID not configured')) {
+          throw new Error('Payment system is being configured. Please contact support for assistance.');
+        }
+        throw new Error(errorData.error || 'Payment processing temporarily unavailable. Please try again.');
       }
 
       const { sessionId } = await response.json();
@@ -152,7 +169,13 @@ const currentPlan = plans.find(p => p.planId === selectedPlan);
       }
     } catch (err: any) {
       console.error('Upgrade error:', err);
-      setError(err.message || 'Failed to process payment. Please try again.');
+      if (err.message?.includes('refresh the page')) {
+        setError('Please refresh the page and try again.');
+      } else if (err.message?.includes('Payment system is being configured')) {
+        setError('Payment system is being configured. Please contact support for assistance.');
+      } else {
+        setError(err.message || 'Payment processing temporarily unavailable. Please try again or contact support.');
+      }
     } finally {
       setUpgrading(false);
     }

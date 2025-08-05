@@ -48,9 +48,15 @@ serve(async (req) => {
 
     // Define price mapping
     const priceMap = {
-      monthly: 'price_1QdVOyP8ZjvjQQQQ1234567890', // Replace with your actual Stripe price IDs
-      semiannual: 'price_1QdVOyP8ZjvjQQQQ0987654321',
-      annual: 'price_1QdVOyP8ZjvjQQQQ1122334455'
+      monthly: Deno.env.get('STRIPE_MONTHLY_PRICE_ID') || 'price_monthly_placeholder',
+      semiannual: Deno.env.get('STRIPE_SEMIANNUAL_PRICE_ID') || 'price_semiannual_placeholder', 
+      annual: Deno.env.get('STRIPE_ANNUAL_PRICE_ID') || 'price_annual_placeholder'
+    }
+
+    // Validate that we have a valid price ID
+    const priceId = priceMap[planType]
+    if (!priceId || priceId.includes('placeholder')) {
+      throw new Error(`Price ID not configured for plan: ${planType}. Please configure Stripe price IDs in environment variables.`)
     }
 
     // Get or create Stripe customer
@@ -82,7 +88,7 @@ serve(async (req) => {
       payment_method_types: ['card'],
       line_items: [
         {
-          price: priceMap[planType],
+          price: priceId,
           quantity: 1,
         },
       ],

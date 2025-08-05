@@ -65,7 +65,7 @@ export class LoyaltyAnalyticsService {
         .from('restaurants')
         .select('roi_settings')
         .eq('id', restaurantId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

@@ -210,36 +210,9 @@ export class SubscriptionService {
     daysRemaining?: number;
   }> {
     try {
-      // Use the safe database function to check subscription status
-      const { data: statusData, error: statusError } = await supabase
-        .rpc('get_user_subscription_status', { user_uuid: userId });
-
-      if (statusError) {
-        console.error('Error checking subscription status:', statusError);
-        // Fallback to basic check
-        const subscription = await this.getUserSubscription(userId);
-        return this.fallbackAccessCheck(subscription);
-      }
-
-      const status = statusData?.[0];
-      if (!status) {
-        return {
-          hasAccess: false,
-          subscription: null,
-          features: this.getTrialFeatures(),
-          daysRemaining: 0
-        };
-      }
-
-      // Get full subscription details
+      // Direct subscription check without RPC function
       const subscription = await this.getUserSubscription(userId);
-
-      return {
-        hasAccess: status.has_access,
-        subscription,
-        features: this.getPlanFeatures(status.plan_type),
-        daysRemaining: status.days_remaining
-      };
+      return this.fallbackAccessCheck(subscription);
     } catch (error: any) {
       console.error('Error checking subscription access:', error);
       // Fallback to basic access

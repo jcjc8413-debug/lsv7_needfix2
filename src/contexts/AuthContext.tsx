@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('owner_id', userId)
           .limit(1),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Database query timeout')), 15000) // Increased timeout
+          setTimeout(() => reject(new Error('Database query timeout')), 30000) // Further increased timeout
         )
       ]) as any;
 
@@ -167,12 +167,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // First check if restaurant already exists for this user
       const { data: existingRestaurant, error: checkError } = await Promise.race([
         supabase
-        .from('restaurants')
-        .select('*')
-        .eq('owner_id', userId)
-        .limit(1),
+          .from('restaurants')
+          .select('*')
+          .eq('owner_id', userId)
+          .limit(1),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Restaurant check timeout')), 10000)
+          setTimeout(() => reject(new Error('Restaurant check timeout')), 30000) // Increased timeout
         )
       ]) as any;
 
@@ -230,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select()
           .single(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Restaurant creation timeout')), 15000) // Increased timeout
+          setTimeout(() => reject(new Error('Restaurant creation timeout')), 30000) // Further increased timeout
         )
       ]) as any;
 
@@ -241,12 +241,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('🔄 Duplicate detected, fetching existing restaurant...');
           const { data: existingRestaurant } = await Promise.race([
             supabase
-            .from('restaurants')
-            .select('*')
-            .eq('owner_id', userId)
-            .limit(1),
+              .from('restaurants')
+              .select('*')
+              .eq('owner_id', userId)
+              .limit(1),
             new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Restaurant fetch timeout')), 10000)
+              setTimeout(() => reject(new Error('Restaurant fetch timeout')), 30000) // Increased timeout
             )
           ]) as any;
           
@@ -300,7 +300,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }))
           ),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Rewards creation timeout')), 10000) // Increased timeout
+          setTimeout(() => reject(new Error('Rewards creation timeout')), 30000) // Further increased timeout
         )
       ]);
       

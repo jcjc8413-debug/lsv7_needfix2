@@ -19,6 +19,7 @@ import {
   Clock,
   ArrowRight,
   CreditCard
+  CreditCard
 } from 'lucide-react';
 
 export default function DashboardLayout() {
