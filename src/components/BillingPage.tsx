@@ -5,23 +5,8 @@ import {
   Plus, Trash2, Edit3, Shield, Crown, Zap, TrendingUp,
   Receipt, FileText, Bell, X, Loader2
 } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
 import { SubscriptionService } from '../services/subscriptionService';
 import { useAuth } from '../contexts/AuthContext';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
-
-interface PaymentMethod {
-  id: string;
-  type: string;
-  card?: {
-    brand: string;
-    last4: string;
-    exp_month: number;
-    exp_year: number;
-  };
-  is_default: boolean;
-}
 
 interface Invoice {
   id: string;
@@ -35,13 +20,11 @@ interface Invoice {
 
 const BillingPage: React.FC = () => {
   const [subscription, setSubscription] = useState<any>(null);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   
   const { user } = useAuth();
 
@@ -62,22 +45,7 @@ const BillingPage: React.FC = () => {
       const subscriptionData = await SubscriptionService.checkSubscriptionAccess(user.id);
       setSubscription(subscriptionData);
 
-      // In a real implementation, you would fetch payment methods and invoices from Stripe
-      // For now, we'll simulate this data
-      setPaymentMethods([
-        {
-          id: 'pm_1234567890',
-          type: 'card',
-          card: {
-            brand: 'visa',
-            last4: '4242',
-            exp_month: 12,
-            exp_year: 2025
-          },
-          is_default: true
-        }
-      ]);
-
+      // Load invoices (simplified for Ziina)
       setInvoices([
         {
           id: 'in_1234567890',
@@ -98,12 +66,12 @@ const BillingPage: React.FC = () => {
   };
 
   const handleCancelSubscription = async () => {
-    if (!subscription?.subscription?.stripe_subscription_id) return;
+    if (!subscription?.subscription) return;
 
     try {
       setActionLoading('cancel');
       
-      // Call your backend to cancel the Stripe subscription
+      // Update subscription status in your database
       const response = await fetch('/api/cancel-subscription', {
         method: 'POST',
         headers: {
@@ -111,7 +79,7 @@ const BillingPage: React.FC = () => {
           'Authorization': `Bearer ${user?.access_token}`
         },
         body: JSON.stringify({
-          subscriptionId: subscription.subscription.stripe_subscription_id
+          subscriptionId: subscription.subscription.id
         })
       });
 
@@ -274,68 +242,27 @@ const BillingPage: React.FC = () => {
           )}
         </div>
 
-        {/* Payment Methods */}
+        {/* Payment Info */}
         <div className="bg-white rounded-2xl p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <CreditCard className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Payment Methods</h3>
-                <p className="text-sm text-gray-600">Manage your payment options</p>
-              </div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <CreditCard className="h-6 w-6 text-green-600" />
             </div>
-            <button
-              onClick={() => setShowAddPaymentModal(true)}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Payment Information</h3>
+              <p className="text-sm text-gray-600">Secure payments powered by Ziina</p>
+            </div>
           </div>
 
-          {paymentMethods.length === 0 ? (
-            <div className="text-center py-8">
-              <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">No payment methods added</p>
-              <button
-                onClick={() => setShowAddPaymentModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Add Payment Method
-              </button>
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+            <div className="flex items-center gap-3">
+              <Shield className="h-6 w-6 text-green-600" />
+              <div>
+                <p className="font-medium text-green-900">Secure Payments</p>
+                <p className="text-sm text-green-700">All payments are processed securely through Ziina</p>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {paymentMethods.map((method) => (
-                <div key={method.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <CreditCard className="h-5 w-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {method.card?.brand.toUpperCase()} •••• {method.card?.last4}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Expires {method.card?.exp_month}/{method.card?.exp_year}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {method.is_default && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
-                        Default
-                      </span>
-                    )}
-                    <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          </div>
         </div>
       </div>
 

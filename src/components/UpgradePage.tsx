@@ -6,12 +6,9 @@ import {
   Users, BarChart3, Shield, Zap, Star, Gift, Target,
   Loader2, AlertCircle
 } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
 import { SubscriptionService } from '../services/subscriptionService';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 const UpgradePage: React.FC = () => {
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
@@ -129,8 +126,8 @@ const currentPlan = plans.find(p => p.planId === selectedPlan);
         throw new Error('Please refresh the page and try again.');
       }
 
-      // Create Stripe checkout session
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`, {
+      // Create Ziina payment intent
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-ziina-payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -146,27 +143,16 @@ const currentPlan = plans.find(p => p.planId === selectedPlan);
 
       if (!response.ok) {
         const errorData = await response.json();
-        if (errorData.error?.includes('Price ID not configured')) {
+        if (errorData.error?.includes('Ziina not configured')) {
           throw new Error('Payment system is being configured. Please contact support for assistance.');
         }
         throw new Error(errorData.error || 'Payment processing temporarily unavailable. Please try again.');
       }
 
-      const { sessionId } = await response.json();
+      const { redirectUrl } = await response.json();
       
-      // Redirect to Stripe Checkout
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Stripe failed to load');
-      }
-
-      const { error: stripeError } = await stripe.redirectToCheckout({
-        sessionId
-      });
-
-      if (stripeError) {
-        throw new Error(stripeError.message);
-      }
+      // Redirect to Ziina checkout
+      window.location.href = redirectUrl;
     } catch (err: any) {
       console.error('Upgrade error:', err);
       if (err.message?.includes('refresh the page')) {
@@ -400,7 +386,7 @@ const currentPlan = plans.find(p => p.planId === selectedPlan);
               <div className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-green-600" />
                 <span className="text-sm font-medium text-green-900">
-                  Secure payment powered by Stripe
+                  Secure payment powered by Ziina
                 </span>
               </div>
             </div>
@@ -423,7 +409,7 @@ const currentPlan = plans.find(p => p.planId === selectedPlan);
           </button>
           
           <p className="text-sm text-gray-500 mt-4">
-            Secure payment powered by Stripe • Cancel anytime
+            Secure payment powered by Ziina • Cancel anytime
           </p>
         </motion.div>
 

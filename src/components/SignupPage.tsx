@@ -6,12 +6,8 @@ import {
   CheckCircle, AlertCircle, Eye, EyeOff, CreditCard,
   Shield, Crown, Award, Sparkles, Loader2
 } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
 
 interface PlanDetails {
   planId: string;
@@ -165,7 +161,7 @@ const SignupPage: React.FC = () => {
         });
       } else {
         // For paid plans, redirect to Stripe checkout
-        await handleStripeCheckout();
+        await handleZiinaCheckout();
       }
     } catch (err: any) {
       setError('Failed to complete signup. Please try signing in if your account was created.');
@@ -174,7 +170,7 @@ const SignupPage: React.FC = () => {
     }
   };
 
-  const handleStripeCheckout = async () => {
+  const handleZiinaCheckout = async () => {
     try {
       // Wait a moment for auth state to settle
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -187,8 +183,8 @@ const SignupPage: React.FC = () => {
         throw new Error('Please wait a moment and try again. Your account is being set up.');
       }
 
-      // Create Stripe checkout session
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`, {
+      // Create Ziina payment intent
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-ziina-payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -204,27 +200,16 @@ const SignupPage: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        if (errorData.error?.includes('Price ID not configured')) {
+        if (errorData.error?.includes('Ziina not configured')) {
           throw new Error('Payment system is not fully configured. Please contact support or try the free trial.');
         }
         throw new Error(errorData.error || 'Payment processing temporarily unavailable. Please try again.');
       }
 
-      const { sessionId } = await response.json();
+      const { redirectUrl } = await response.json();
       
-      // Redirect to Stripe Checkout
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Stripe failed to load');
-      }
-
-      const { error: stripeError } = await stripe.redirectToCheckout({
-        sessionId
-      });
-
-      if (stripeError) {
-        throw new Error(stripeError.message);
-      }
+      // Redirect to Ziina checkout
+      window.location.href = redirectUrl;
 
     } catch (err: any) {
       console.error('Stripe checkout error:', err);
@@ -437,7 +422,7 @@ const SignupPage: React.FC = () => {
                       </button>
                     </div>
                     {validationErrors.confirmPassword && (
-                      <p className="text-red-600 text-sm mt-1">{validationErrors.confirmPassword}</p>
+                      Secure payment powered by Ziina
                     )}
                   </div>
                 </div>

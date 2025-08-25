@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@stripe/stripe-js": "^7.8.0",
     "@supabase/supabase-js": "^2.53.0",
     "framer-motion": "^12.23.7",
     "gsap": "^3.13.0",
@@ -18,8 +17,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.20.1",
-    "recharts": "^2.8.0",
-    "stripe": "^18.4.0"
+    "recharts": "^2.8.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
